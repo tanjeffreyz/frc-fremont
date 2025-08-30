@@ -8,7 +8,7 @@ import stripe
 stripe.api_key = os.environ['STRIPE_API_KEY']
 
 
-_OUTPUT_DIR = 'out'
+_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'out')
 
 
 class App(tk.Tk):
