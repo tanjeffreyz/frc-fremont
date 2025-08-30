@@ -8,18 +8,21 @@ import stripe
 stripe.api_key = os.environ['STRIPE_API_KEY']
 
 
+_OUTPUT_DIR = 'out'
+
+
 class App(tk.Tk):
     """
     A simple Tkinter application with input fields for Name (string),
-    Year (integer), and a PDF file selector.
+    Year (integer), Amount (float), and a PDF file selector.
     """
 
     def __init__(self):
         super().__init__()
 
         # --- Window Configuration ---
-        self.title("Add Stripe Payment Link")
-        self.geometry("500x200")
+        self.title("Stripe Client")
+        self.geometry("500x250")
         self.resizable(False, False)
 
         # --- Style Configuration ---
@@ -32,6 +35,7 @@ class App(tk.Tk):
         # These variables are used to get/set widget values
         self.name_var = tk.StringVar()
         self.year_var = tk.StringVar()
+        self.amount_var = tk.StringVar()
         self.filepath_var = tk.StringVar()
         self.filepath_display_var = tk.StringVar(value="No file selected.")
 
@@ -57,30 +61,34 @@ class App(tk.Tk):
         year_entry = ttk.Entry(container, textvariable=self.year_var)
         year_entry.grid(row=1, column=1, columnspan=2, sticky="ew", pady=5)
 
+        # --- Amount Input ---
+        ttk.Label(container, text="Amount:").grid(row=2, column=0, sticky=tk.W)
+        amount_entry = ttk.Entry(container, textvariable=self.amount_var)
+        amount_entry.grid(row=2, column=1, columnspan=2, sticky="ew", pady=5)
+
         # --- File Selector ---
         ttk.Label(container, text="PDF File:").grid(
-            row=2, column=0, sticky=tk.W, pady=(10, 0))
+            row=3, column=0, sticky=tk.W, pady=(10, 0))
 
         # Label to display the selected file path
         filepath_label = ttk.Label(
             container, textvariable=self.filepath_display_var, foreground="gray", wraplength=300)
-        filepath_label.grid(row=2, column=1, sticky="ew", pady=(10, 0))
+        filepath_label.grid(row=3, column=1, sticky="ew", pady=(10, 0))
 
         # Button to open the file dialog
         browse_button = ttk.Button(
             container, text="Browse...", command=self.select_pdf_file)
-        browse_button.grid(row=2, column=2, sticky=tk.E, pady=(10, 0))
+        browse_button.grid(row=3, column=2, sticky=tk.E, pady=(10, 0))
 
         # --- Submit Button ---
         submit_button = ttk.Button(
             container, text="Generate", command=self.submit_data)
-        submit_button.grid(row=3, column=1, pady=(20, 0))
+        submit_button.grid(row=4, column=1, pady=(20, 0))
 
     def select_pdf_file(self):
         """Opens a file dialog to select a PDF file and updates the file path variable."""
         filetypes = (
             ('PDF files', '*.pdf'),
-            ('All files', '*.*')
         )
         filepath = filedialog.askopenfilename(
             title='Select a PDF file',
@@ -100,6 +108,7 @@ class App(tk.Tk):
         """
         name = self.name_var.get()
         year_str = self.year_var.get()
+        amount_str = self.amount_var.get()
         filepath = self.filepath_var.get()
 
         # --- Validation ---
@@ -114,6 +123,17 @@ class App(tk.Tk):
             messagebox.showerror("Error", "Year must be a valid integer.")
             return
 
+        try:
+            # Attempt to convert amount to float
+            amount = round(float(amount_str), 2)
+        except ValueError:
+            messagebox.showerror("Error", "Amount must be a valid number.")
+            return
+
+        if filepath == "No file selected.":
+            messagebox.showerror("Error", "Please select a PDF file.")
+            return
+        
         if filepath == "No file selected.":
             messagebox.showerror("Error", "Please select a PDF file.")
             return
@@ -123,16 +143,17 @@ class App(tk.Tk):
         print("--- Submitted Data ---")
         print(f"Name: {name} (Type: {type(name).__name__})")
         print(f"Year: {year} (Type: {type(year).__name__})")
+        print(f"Amount: {amount} (Type: {type(amount).__name__})")
         print(f"File Path: {filepath} (Type: {type(filepath).__name__})")
         print("----------------------")
         print('\n')
 
-        # Generate PDF.
+        # Create Payment Link in Stripe.
         product = stripe.Product.create(name=f'{name} - {year}')
 
         price = stripe.Price.create(
             currency='usd',
-            unit_amount=2000_00,
+            unit_amount=int(amount * 100),
             product=product.id
         )
 
@@ -140,6 +161,7 @@ class App(tk.Tk):
             line_items=[{'price': price.id, 'quantity': 1}],
         )
 
+        # Generate PDF with pay button in footer.
         class PDF(FPDF):
 
             def button(self, x, y, w, h, text, link, text_color=(0, 0, 0), fill_color=(255, 255, 255)):
@@ -179,9 +201,11 @@ class App(tk.Tk):
             writer.add_page(original_page)
 
         # 4. Save the modified PDF
+        if not os.path.exists(_OUTPUT_DIR):
+            os.mkdir(_OUTPUT_DIR)
         invoice_name = os.path.basename(filepath)
         name, ext = os.path.splitext(invoice_name)
-        output_name = f'{name}_stripe{ext}'
+        output_name = os.path.join(_OUTPUT_DIR, f'{name}_stripe{ext}')
         with open(output_name, "wb") as output_pdf:
             writer.write(output_pdf)
 
