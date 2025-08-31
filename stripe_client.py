@@ -161,17 +161,17 @@ class App(tk.Tk):
                 self.rect(x, y, w, h, style='DF', round_corners=True)
 
                 self.set_xy(x, y)
+                self.set_font('Arial', 'B', 14)
                 self.set_text_color(*text_color)
                 self.cell(w, h, text=text, align='C', link=link)
 
             def footer(self):
-                self.button(pdf.w / 2, pdf.h - 25, 50, 10, 'Make Payment Here', payment_link.url,
-                            fill_color=(0, 255, 0))
+                self.button(pdf.w / 2, pdf.h - 25, 50, 10, 'Pay Online Here', payment_link.url,
+                            fill_color=(119, 221, 119))
 
         # Create an instance of the custom PDF class
         pdf = PDF()
         pdf.add_page()
-        pdf.set_font('Times', '', 12)
 
         template_name = 'template.pdf'
         pdf.output(template_name)
