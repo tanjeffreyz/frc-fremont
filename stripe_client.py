@@ -14,7 +14,7 @@ _OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'out')
 class App(tk.Tk):
     """
     A simple Tkinter application with input fields for Name (string),
-    Year (integer), Amount (float), and a PDF file selector.
+    Description (string), Amount (float), and a PDF file selector.
     """
 
     def __init__(self):
@@ -34,7 +34,7 @@ class App(tk.Tk):
         # --- Tkinter Variables ---
         # These variables are used to get/set widget values
         self.name_var = tk.StringVar()
-        self.year_var = tk.StringVar()
+        self.description_var = tk.StringVar()
         self.amount_var = tk.StringVar()
         self.filepath_var = tk.StringVar()
         self.filepath_display_var = tk.StringVar(value="No file selected.")
@@ -56,10 +56,10 @@ class App(tk.Tk):
         name_entry = ttk.Entry(container, textvariable=self.name_var)
         name_entry.grid(row=0, column=1, columnspan=2, sticky="ew", pady=5)
 
-        # --- Year Input ---
-        ttk.Label(container, text="Year:").grid(row=1, column=0, sticky=tk.W)
-        year_entry = ttk.Entry(container, textvariable=self.year_var)
-        year_entry.grid(row=1, column=1, columnspan=2, sticky="ew", pady=5)
+        # --- Description Input ---
+        ttk.Label(container, text="Description:").grid(row=1, column=0, sticky=tk.W)
+        description_entry = ttk.Entry(container, textvariable=self.description_var)
+        description_entry.grid(row=1, column=1, columnspan=2, sticky="ew", pady=5)
 
         # --- Amount Input ---
         ttk.Label(container, text="Amount:").grid(row=2, column=0, sticky=tk.W)
@@ -107,7 +107,7 @@ class App(tk.Tk):
         Shows a message box with the collected data.
         """
         name = self.name_var.get()
-        year_str = self.year_var.get()
+        description = self.description_var.get()
         amount_str = self.amount_var.get()
         filepath = self.filepath_var.get()
 
@@ -117,24 +117,13 @@ class App(tk.Tk):
             return
 
         try:
-            # Attempt to convert year to an integer
-            year = int(year_str)
-        except ValueError:
-            messagebox.showerror("Error", "Year must be a valid integer.")
-            return
-
-        try:
             # Attempt to convert amount to float
             amount = round(float(amount_str), 2)
         except ValueError:
             messagebox.showerror("Error", "Amount must be a valid number.")
             return
 
-        if filepath == "No file selected.":
-            messagebox.showerror("Error", "Please select a PDF file.")
-            return
-        
-        if filepath == "No file selected.":
+        if len(filepath) == 0:
             messagebox.showerror("Error", "Please select a PDF file.")
             return
 
@@ -142,14 +131,14 @@ class App(tk.Tk):
         # Print to console
         print("--- Submitted Data ---")
         print(f"Name: {name} (Type: {type(name).__name__})")
-        print(f"Year: {year} (Type: {type(year).__name__})")
+        print(f"Description: {description} (Type: {type(description).__name__})")
         print(f"Amount: {amount} (Type: {type(amount).__name__})")
         print(f"File Path: {filepath} (Type: {type(filepath).__name__})")
         print("----------------------")
         print('\n')
 
         # Create Payment Link in Stripe.
-        product = stripe.Product.create(name=f'{name} - {year}')
+        product = stripe.Product.create(name=f'{name} - {description}')
 
         price = stripe.Price.create(
             currency='usd',
